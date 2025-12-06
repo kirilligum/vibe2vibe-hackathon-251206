@@ -43,24 +43,7 @@ The system connects the user dashboard to the Grazer analysis engine and the tar
 
 ![System Architecture](diagrams/architecture.png)
 
-```mermaid
-graph TD
-    User[User] -->|Provides Repo/Folder| V2V[Vibe2Vibe App]
-    subgraph "Vibe2Vibe System"
-        V2V -->|Request Analysis| Grazer[Grazer Service]
-        Grazer -->|Returns Metrics & Mermaid Viz| V2V
-        V2V -->|Generates Plan| Planner[Planning Module]
-        Planner -->|Dispatch| AgentOrch[Agent Orchestrator]
-    end
-    subgraph "Target Repository"
-        Repo[Monorepo / Source Code]
-        Config[agents.md / Rules]
-    end
-    Grazer -- Analyzes --> Repo
-    AgentOrch -- Spawns Agents --> Agents[AI Coding Agents]
-    Agents -- Read/Write --> Config
-    Agents -- Refactor Code --> Repo
-```
+
 
 ### Refactoring Workflow
 
@@ -73,35 +56,7 @@ graph TD
 
 ![Refactoring Workflow](diagrams/workflow.png)
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant V2V as Vibe2Vibe App
-    participant Grazer as Grazer Service
-    participant Agent as Coding Agent
-    participant Repo as Source Code
 
-    User->>V2V: Select Repo/Folder
-    V2V->>Grazer: Request Cyclometrics Analysis
-    Grazer->>Repo: Scan Files & Complexity
-    Grazer-->>V2V: Return Metrics + Visuals (Red/Green)
-    V2V->>V2V: Generate Refactoring Plan
-    V2V->>User: Present Plan & Visualization
-    User->>V2V: Approve Plan
-    loop Refactoring Process
-        V2V->>Agent: Assign Task (e.g. Extract Service)
-        Agent->>Repo: Check agents.md (Lock/Rules)
-        alt Allowed
-            Agent->>Repo: Modify Code
-            Agent->>Repo: Update Docs
-        else Conflict
-            Agent->>V2V: Report Conflict / Request Review
-        end
-    end
-    V2V->>Grazer: Verify Post-Refactor Metrics
-    Grazer-->>V2V: Comparison Report
-    V2V->>User: Show Success/Diff
-```
 
 ---
 
