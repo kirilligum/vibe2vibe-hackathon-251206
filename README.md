@@ -53,7 +53,7 @@ A sample application used to demonstrate Vibe2Vibe's capabilities. It analyzes p
 This is the core differentiator. We separate "Management" (A2A) from "Labor" (MCP).
 
 ### System Architecture Diagram
-![System Architecture](diagrams/architecture.png)
+![System Architecture](diagrams/architecture.svg)
 
 ### A. Horizontal: Agent-to-Agent (A2A)
 **Used for:** Inter-agent delegation, negotiation, and state management.
@@ -78,7 +78,7 @@ This is the core differentiator. We separate "Management" (A2A) from "Labor" (MC
     *   *Tool Call:* `validate_token_budget(content: string)`
 
 ### Refactoring Workflow Diagram
-![Refactoring Workflow](diagrams/workflow.png)
+![Refactoring Workflow](diagrams/workflow.svg)
 
 ### The "Negotiation Loop" Workflow
 We implement a "Closed-Loop" process to ensure quality. Agents must negotiate requirements before coding and verify results before merging.
