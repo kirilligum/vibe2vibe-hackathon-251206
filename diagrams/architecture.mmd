@@ -1,16 +1,21 @@
 graph TD
-    User[User] -->|Provides Repo/Folder| V2V[Vibe2Vibe App]
-    subgraph "Vibe2Vibe System"
-        V2V -->|Request Analysis| Grazer[Grazer Service]
-        Grazer -->|Returns Metrics & Mermaid Viz| V2V
-        V2V -->|Generates Plan| Planner[Planning Module]
-        Planner -->|Dispatch| AgentOrch[Agent Orchestrator]
+    User[User] -->|Provides Repo| PG[Prompt Generator / V2V]
+    
+    subgraph "Analysis Loop"
+        PG -->|1. Request Old Metrics| Grazer[Grazer Service]
+        PG -->|2. Request New Metrics| Grazer
+        Grazer -->|Returns Cyclometrics & Mermaid| PG
     end
-    subgraph "Target Repository"
-        Repo[Monorepo / Source Code]
-        Config[agents.md / Rules]
+
+    subgraph "Execution"
+        PG -->|Generates Split Plan| AgentOrch[Agent Orchestrator]
+        AgentOrch -->|Spawns| Agent[AI Coder]
+        Agent -->|Refactors| Repo[Source Code]
     end
+
+    subgraph "Comparison"
+        PG -->|Compares Metrics| Diff[Improvement Report]
+        Diff -->|Visualized for| User
+    end
+
     Grazer -- Analyzes --> Repo
-    AgentOrch -- Spawns Agents --> Agents[AI Coding Agents]
-    Agents -- Read/Write --> Config
-    Agents -- Refactor Code --> Repo

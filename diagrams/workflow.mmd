@@ -1,27 +1,30 @@
 sequenceDiagram
     actor User
-    participant V2V as Vibe2Vibe App
-    participant Grazer as Grazer Service
-    participant Agent as Coding Agent
+    participant PG as Prompt Gen (V2V)
+    participant Grazer
+    participant Agent as AI Coder
     participant Repo as Source Code
 
-    User->>V2V: Select Repo/Folder
-    V2V->>Grazer: Request Cyclometrics Analysis
-    Grazer->>Repo: Scan Files & Complexity
-    Grazer-->>V2V: Return Metrics + Visuals (Red/Green)
-    V2V->>V2V: Generate Refactoring Plan
-    V2V->>User: Present Plan & Visualization
-    User->>V2V: Approve Plan
-    loop Refactoring Process
-        V2V->>Agent: Assign Task (e.g. Extract Service)
-        Agent->>Repo: Check agents.md (Lock/Rules)
-        alt Allowed
-            Agent->>Repo: Modify Code
-            Agent->>Repo: Update Docs
-        else Conflict
-            Agent->>V2V: Report Conflict / Request Review
-        end
-    end
-    V2V->>Grazer: Verify Post-Refactor Metrics
-    Grazer-->>V2V: Comparison Report
-    V2V->>User: Show Success/Diff
+    User->>PG: Select Repo
+    
+    note right of PG: 1. Pre-Refactor Analysis
+    PG->>Grazer: Request Metrics (Old Repo)
+    Grazer->>Repo: Analyze Files & Complexity
+    Grazer-->>PG: Metrics, Explanations, Mermaid
+    PG->>User: Show Visualization (Red Nodes)
+
+    PG->>PG: Plan Microservice Split
+    PG->>User: Present Plan
+    User->>PG: Approve Plan
+
+    note right of PG: 2. Execution
+    PG->>Agent: Execute Split Plan
+    Agent->>Repo: Create Microservices / Refactor
+
+    note right of PG: 3. Post-Refactor Verification
+    PG->>Grazer: Request Metrics (New Microservices)
+    Grazer->>Repo: Analyze New Structure
+    Grazer-->>PG: New Metrics
+    PG->>PG: Compare Old vs New
+    PG->>PG: Generate Improvement Explanation
+    PG->>User: Show Comparison & Success
