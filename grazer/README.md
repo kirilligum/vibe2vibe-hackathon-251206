@@ -19,16 +19,6 @@ A Model Context Protocol (MCP) server that provides tools to calculate **Cycloma
    npm run build
    ```
 
-## Usage
-
-### Running with Claude Code
-
-To add this server to Claude Code, run:
-
-```bash
-claude mcp add mcp-file-metrics -- node /path/to/project/build/index.js
-```
-*(Replace `/path/to/project` with the absolute path to this directory)*
 
 ### Verification
 
