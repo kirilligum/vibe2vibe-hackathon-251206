@@ -8,11 +8,14 @@ import { z } from "zod";
 import * as fs from "fs/promises";
 import * as path from "path";
 import ts from "typescript";
+import { analyzeText } from "./analyzers/text.js";
+import { analyzeAST } from "./analyzers/ast.js";
+import { CodeMetrics } from "./types.js";
 
 const server = new Server(
     {
         name: "mcp-file-metrics",
-        version: "1.0.0",
+        version: "2.0.0",
     },
     {
         capabilities: {
@@ -25,81 +28,131 @@ const CalculateMetricsArgsSchema = z.object({
     path: z.string(),
 });
 
-interface Metrics {
-    complexity: number;
-    characters: number;
+async function analyzeFile(filePath: string): Promise<CodeMetrics> {
+    const content = await fs.readFile(filePath, "utf-8");
+
+    // Parallel execution of analyzers
+    const [textMetrics, astMetrics] = await Promise.all([
+        new Promise<ReturnType<typeof analyzeText>>(resolve => resolve(analyzeText(content))),
+        new Promise<ReturnType<typeof analyzeAST>>(resolve => {
+            // Only run AST analysis on JS/TS files
+            if (filePath.endsWith(".ts") || filePath.endsWith(".js") || filePath.endsWith(".tsx") || filePath.endsWith(".jsx")) {
+                const sourceFile = ts.createSourceFile(
+                    filePath,
+                    content,
+                    ts.ScriptTarget.Latest,
+                    true
+                );
+                resolve(analyzeAST(sourceFile));
+            } else {
+                resolve({
+                    cyclomaticComplexity: 1,
+                    cognitiveComplexity: 0,
+                    nestingDepth: 0,
+                    fanOut: 0,
+                    halstead: { volume: 0, effort: 0, difficulty: 0, length: 0, vocabulary: 0 }
+                });
+            }
+        })
+    ]);
+
+    // Maintainability Index Calculation
+    // MI = 171 - 5.2 * ln(Halstead Volume) - 0.23 * (Cyclomatic Complexity) - 16.2 * ln(LOC)
+    // Note: Volume can be 0, so Math.max(1, volume)
+    // LOC can be 0.
+    const volume = Math.max(1, astMetrics.halstead.volume);
+    const loc = Math.max(1, textMetrics.loc);
+    const maintainabilityIndex = Math.max(0, 171 - 5.2 * Math.log(volume) - 0.23 * astMetrics.cyclomaticComplexity - 16.2 * Math.log(loc));
+
+    const metrics: CodeMetrics = {
+        fileName: path.basename(filePath),
+        ...textMetrics,
+        ...astMetrics,
+        maintainabilityIndex
+    };
+
+    // Log summary
+    console.error(`${metrics.fileName}: Comp ${metrics.cyclomaticComplexity} Cog ${metrics.cognitiveComplexity} MI ${metrics.maintainabilityIndex.toFixed(2)}`);
+
+    return metrics;
 }
 
-function calculateComplexity(content: string, fileName: string): number {
-    if (!fileName.endsWith(".ts") && !fileName.endsWith(".js") && !fileName.endsWith(".tsx") && !fileName.endsWith(".jsx")) {
-        return 1; // Default complexity for non-code files
-    }
+async function getDirectoryMetrics(dirPath: string): Promise<CodeMetrics> {
+    // Aggregate metrics
+    // For complexity/size, we sum.
+    // For MI/Density, we average or re-calculate? 
+    // Requirement: "recursively sum both metrics". 
+    // For holistic, summing complexity/LOC makes sense.
+    // Summing MI doesn't make sense physically. Weighted average?
+    // Let's implement summation for additive metrics, and zero/null for file-specific ratios in directory context,
+    // OR just calculate total size/complexity.
+    // The simplest interpretation of "metrics for a folder" is the sum of cost metrics.
+    // Non-additive metrics like MI will be averaged for the directory view.
 
-    const sourceFile = ts.createSourceFile(
-        fileName,
-        content,
-        ts.ScriptTarget.Latest,
-        true
-    );
+    let total: CodeMetrics = {
+        fileName: path.basename(dirPath),
+        cyclomaticComplexity: 0,
+        cognitiveComplexity: 0,
+        nestingDepth: 0, // Max of children
+        halstead: { volume: 0, effort: 0, difficulty: 0, length: 0, vocabulary: 0 },
+        maintainabilityIndex: 0, // Average?
+        loc: 0,
+        sloc: 0,
+        commentLines: 0,
+        commentDensity: 0,
+        fanOut: 0
+    };
 
-    let complexity = 1;
+    let fileCount = 0;
 
-    function visit(node: ts.Node) {
-        switch (node.kind) {
-            case ts.SyntaxKind.IfStatement:
-            case ts.SyntaxKind.ForStatement:
-            case ts.SyntaxKind.ForInStatement:
-            case ts.SyntaxKind.ForOfStatement:
-            case ts.SyntaxKind.WhileStatement:
-            case ts.SyntaxKind.DoStatement:
-            case ts.SyntaxKind.CaseClause:
-            case ts.SyntaxKind.CatchClause:
-            case ts.SyntaxKind.ConditionalExpression: // Ternary operator
-            case ts.SyntaxKind.AmpersandAmpersandToken:
-            case ts.SyntaxKind.BarBarToken:
-                complexity++;
-                break;
-        }
-        ts.forEachChild(node, visit);
-    }
-
-    visit(sourceFile);
-    return complexity;
-}
-
-async function getFileMetrics(filePath: string): Promise<Metrics> {
-    try {
-        const content = await fs.readFile(filePath, "utf-8");
-        const characters = content.length;
-        const complexity = calculateComplexity(content, filePath);
-        console.error(`${path.basename(filePath)}: Complexity ${complexity}`);
-        return { complexity, characters };
-    } catch (error) {
-        console.error(`Error reading file ${filePath}:`, error);
-        return { complexity: 0, characters: 0 };
-    }
-}
-
-async function getDirectoryMetrics(dirPath: string): Promise<Metrics> {
-    let totalMetrics: Metrics = { complexity: 0, characters: 0 };
     try {
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
-        for (const entry of entries) {
+
+        // Process in parallel
+        const promises = entries.map(async (entry) => {
             const fullPath = path.join(dirPath, entry.name);
             if (entry.isDirectory()) {
-                const metrics = await getDirectoryMetrics(fullPath);
-                totalMetrics.complexity += metrics.complexity;
-                totalMetrics.characters += metrics.characters;
+                return getDirectoryMetrics(fullPath);
             } else if (entry.isFile()) {
-                const metrics = await getFileMetrics(fullPath);
-                totalMetrics.complexity += metrics.complexity;
-                totalMetrics.characters += metrics.characters;
+                return analyzeFile(fullPath);
             }
+            return null;
+        });
+
+        const results = await Promise.all(promises);
+
+        for (const res of results) {
+            if (!res) continue;
+            fileCount++; // Actually if directory, it counts as 1 item or we count all files inside?
+            // Recursive getDirectoryMetrics returns aggregated stats.
+
+            total.cyclomaticComplexity += res.cyclomaticComplexity;
+            total.cognitiveComplexity += res.cognitiveComplexity;
+            total.nestingDepth = Math.max(total.nestingDepth, res.nestingDepth);
+            total.halstead.volume += res.halstead.volume;
+            total.halstead.effort += res.halstead.effort;
+            total.halstead.difficulty = Math.max(total.halstead.difficulty, res.halstead.difficulty); // Diff is inherent? Summing diff doesn't make sense.
+            total.halstead.length += res.halstead.length;
+            total.halstead.vocabulary += res.halstead.vocabulary;
+
+            total.loc += res.loc;
+            total.sloc += res.sloc;
+            total.commentLines += res.commentLines;
+            total.fanOut += res.fanOut;
+
+            // Sum MI to average later
+            total.maintainabilityIndex += res.maintainabilityIndex;
         }
     } catch (error) {
         console.error(`Error reading directory ${dirPath}:`, error);
     }
-    return totalMetrics;
+
+    if (fileCount > 0) {
+        total.maintainabilityIndex /= fileCount;
+        total.commentDensity = total.loc > 0 ? total.commentLines / total.loc : 0;
+    }
+
+    return total;
 }
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -107,7 +160,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         tools: [
             {
                 name: "calculate_metrics",
-                description: "Calculate cyclomatic complexity and character count for a file or recursively for a folder",
+                description: "Calculate holistic code quality metrics (Complexity, Cognitive, Halstead, MI, SLOC) for files or directories.",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -137,19 +190,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     try {
         const stats = await fs.stat(inputPath);
-        let metrics: Metrics = { complexity: 0, characters: 0 };
+        let metrics: CodeMetrics;
 
         if (stats.isDirectory()) {
             metrics = await getDirectoryMetrics(inputPath);
         } else {
-            metrics = await getFileMetrics(inputPath);
+            metrics = await analyzeFile(inputPath);
         }
 
         return {
             content: [
                 {
                     type: "text",
-                    text: `Total complexity: ${metrics.complexity}\nTotal characters: ${metrics.characters}`,
+                    text: JSON.stringify(metrics, null, 2),
                 },
             ],
         };
@@ -169,7 +222,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error("MCP Metrics Server running on stdio");
+    console.error("MCP Holistic Metrics Server running on stdio");
 }
 
 main().catch((error) => {

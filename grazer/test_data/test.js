@@ -48,38 +48,6 @@ app.get("/api/read", async (req, res) => {
                                                                 try {
                                                                   try {
                                                                     try {
-                                                                      try {
-                                                                        const filePath =
-                                                                          req
-                                                                            .query
-                                                                            .path;
-                                                                        if (
-                                                                          !filePath
-                                                                        )
-                                                                          return res
-                                                                            .status(
-                                                                              400,
-                                                                            )
-                                                                            .send(
-                                                                              "Path required",
-                                                                            );
-                                                                        const content =
-                                                                          await fs.readFile(
-                                                                            filePath,
-                                                                            "utf-8",
-                                                                          );
-                                                                        const complexity =
-                                                                          getComplexity(
-                                                                            content,
-                                                                          );
-                                                                        res.json(
-                                                                          {
-                                                                            content,
-                                                                            complexity,
-                                                                          },
-                                                                        );
-                                                                      } finally {
-                                                                      }
                                                                     } finally {
                                                                     }
                                                                   } finally {

@@ -35,7 +35,6 @@ async function main() {
             console.error("FAILED: calculate_metrics tool not found");
             process.exit(1);
         }
-        console.log("Tool found");
 
         const result = await client.callTool({
             name: "calculate_metrics",
@@ -47,18 +46,26 @@ async function main() {
         const content = result.content[0].text;
         console.log("Result content:", content);
 
-        if (
-            content.match(/Total complexity: \d+/) &&
-            content.match(/Total characters: \d+/)
-        ) {
-            console.log("SUCCESS: Metrics returned");
+        const metrics = JSON.parse(content);
+
+        // Basic structural validation
+        if (typeof metrics.cyclomaticComplexity === 'number' &&
+            typeof metrics.cognitiveComplexity === 'number' &&
+            typeof metrics.maintainabilityIndex === 'number' &&
+            typeof metrics.sloc === 'number' &&
+            metrics.halstead && typeof metrics.halstead.volume === 'number') {
+
+            console.log("SUCCESS: Holistic metrics returned");
+            console.log(`Summary: Comp ${metrics.cyclomaticComplexity}, Cog ${metrics.cognitiveComplexity}, MI ${metrics.maintainabilityIndex.toFixed(2)}`);
+
             await transport.close();
             process.exit(0);
         } else {
-            console.error("FAILED: Output format mismatch");
+            console.error("FAILED: Metrics structure mismatch");
             await transport.close();
             process.exit(1);
         }
+
     } catch (error) {
         console.error("Verification failed:", error);
         process.exit(1);
