@@ -10,26 +10,26 @@ graph TD
     subgraph "Refactoring Orchestration"
         PG -->|Coordination| AgentOrch[Agent Orchestrator]
         
-        subgraph "Microservice A"
+        subgraph "Microservice A (New)"
             AgentA[Agent A]
             ConfigA[AGENTS.md]
             CodeA[Source Code A]
-            AgentA -->|Reads/Writes| ConfigA
+            AgentA -->|Enforces Rules| ConfigA
             AgentA -->|Refactors| CodeA
         end
 
-        subgraph "Microservice B"
+        subgraph "Microservice B (New)"
             AgentB[Agent B]
             ConfigB[AGENTS.md]
             CodeB[Source Code B]
-            AgentB -->|Reads/Writes| ConfigB
+            AgentB -->|Enforces Rules| ConfigB
             AgentB -->|Refactors| CodeB
         end
     end
 
     %% Key Flow: PG talks to Grazer TWICE
-    PG -->|1. Request Old Metrics| Grazer
-    PG -->|2. Request New Metrics| Grazer
+    PG -->|1. Request Pre-Split Metrics| Grazer
+    PG -->|2. Request Post-Split Metrics| Grazer
     Grazer -->|Returns Cyclometrics & Mermaid| PG
 
     PG -->|3. Compare & Explain| Diff[Improvement Report]
@@ -38,8 +38,8 @@ graph TD
     AgentOrch -->|Spawns| AgentB
 
     %% A2A Communication
-    AgentA <-->|A2A Protocol / Req Docs| AgentB
+    AgentA <-->|A2A Protocol: Exchange Req Docs| AgentB
     
     %% Use MCP
-    AgentA -.->|Uses Tools| MCP
-    AgentB -.->|Uses Tools| MCP
+    AgentA -.->|Calls Grazer Tools| MCP
+    AgentB -.->|Calls Grazer Tools| MCP

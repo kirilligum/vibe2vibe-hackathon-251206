@@ -2,7 +2,7 @@ sequenceDiagram
     actor User
     participant PG as Prompt Gen (V2V)
     participant Grazer as Grazer Service
-    participant GrazerMCP as Grazer MCP
+    participant MCP as Grazer MCP Server
     participant AgentOrch as Agent Orchestrator
     
     box "Microservice A" #eef
@@ -15,36 +15,38 @@ sequenceDiagram
         participant ConfigB as AGENTS.md (B)
     end
 
-    note over Grazer, GrazerMCP: Grazer exposes tools via MCP
-
     User->>PG: Select Repo
     
     rect rgb(240, 248, 255)
         note right of PG: 1. Pre-Refactor Analysis
         PG->>Grazer: Request Metrics (Old Repo)
-        Grazer-->>PG: Metrics, Explanations, Mermaid
+        Grazer-->>PG: Return Pre-Split Metrics
     end
 
-    PG->>AgentOrch: Execute Split Plan (Create Service A & B)
-    AgentOrch->>AgentA: Initialize Service A
-    AgentA->>ConfigA: Create AGENTS.md (Define Scope)
-    AgentOrch->>AgentB: Initialize Service B
-    AgentB->>ConfigB: Create AGENTS.md (Define Scope)
+    PG->>AgentOrch: Execute Split Plan
+    AgentOrch->>AgentA: Spawn Service A
+    AgentA->>ConfigA: Initialize AGENTS.md (Rules)
+    AgentOrch->>AgentB: Spawn Service B
+    AgentB->>ConfigB: Initialize AGENTS.md (Rules)
 
     rect rgb(255, 250, 240)
-        note right of PG: 2. A2A Communication
-        AgentA->>GrazerMCP: Check Complexity (Self)
-        AgentA->>AgentB: Request Change (via Protocol)
-        AgentB->>ConfigB: Verify Permissions
-        AgentB-->>AgentA: Ack / Reject
+        note right of PG: 2. A2A & MCP Interaction
+        AgentA->>MCP: Call Grazer Tool (Check Complexity)
+        MCP-->>AgentA: Tool Output
+        
+        note over AgentA, AgentB: A2A Protocol via AGENTS.md Rules
+        AgentA->>AgentB: Send Requirement Doc (Change Request)
+        AgentB->>ConfigB: Check Permissions/Rules
+        AgentB->>AgentB: Apply Changes
+        AgentB-->>AgentA: Confirm Completion
     end
 
     rect rgb(240, 255, 240)
         note right of PG: 3. Post-Refactor Verification
         PG->>Grazer: Request Metrics (Service A)
         PG->>Grazer: Request Metrics (Service B)
-        Grazer-->>PG: New Metrics
-        PG->>PG: Compare & Explain Improvement
+        Grazer-->>PG: Return Post-Split Metrics
+        PG->>PG: Compare & Explain Improvements
     end
     
     PG->>User: Show Success
