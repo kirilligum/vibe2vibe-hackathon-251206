@@ -9,22 +9,22 @@ graph TD
 
     subgraph "Refactoring Orchestration"
         PG -->|Coordination| AgentOrch[Agent Orchestrator]
-        
-        subgraph "Microservice A (New)"
-            AgentA[Agent A]
-            ConfigA[AGENTS.md]
-            CodeA[Source Code A]
-            AgentA -->|Enforces Rules| ConfigA
-            AgentA -->|Refactors| CodeA
-        end
+    end
 
-        subgraph "Microservice B (New)"
-            AgentB[Agent B]
-            ConfigB[AGENTS.md]
-            CodeB[Source Code B]
-            AgentB -->|Enforces Rules| ConfigB
-            AgentB -->|Refactors| CodeB
-        end
+    subgraph "Microservice A (New)"
+        AgentA[Agent A]
+        ConfigA[AGENTS.md]
+        CodeA[Source Code A]
+        AgentA -->|Enforces Rules| ConfigA
+        AgentA -->|Refactors| CodeA
+    end
+
+    subgraph "Microservice B (New)"
+        AgentB[Agent B]
+        ConfigB[AGENTS.md]
+        CodeB[Source Code B]
+        AgentB -->|Enforces Rules| ConfigB
+        AgentB -->|Refactors| CodeB
     end
 
     %% Key Flow: PG talks to Grazer TWICE
