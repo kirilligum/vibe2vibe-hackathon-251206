@@ -1,21 +1,45 @@
 graph TD
     User[User] -->|Provides Repo| PG[Prompt Generator / V2V]
     
-    subgraph "Analysis Loop"
-        PG -->|1. Request Old Metrics| Grazer[Grazer Service]
-        PG -->|2. Request New Metrics| Grazer
-        Grazer -->|Returns Cyclometrics & Mermaid| PG
+    subgraph "Grazer Ecosystem"
+        Grazer[Grazer Service]
+        MCP[Grazer MCP Server]
+        Grazer -->|Exposes Tools| MCP
     end
 
-    subgraph "Execution"
-        PG -->|Generates Split Plan| AgentOrch[Agent Orchestrator]
-        AgentOrch -->|Spawns| Agent[AI Coder]
-        Agent -->|Refactors| Repo[Source Code]
+    subgraph "Refactoring Orchestration"
+        PG -->|Coordination| AgentOrch[Agent Orchestrator]
+        
+        subgraph "Microservice A"
+            AgentA[Agent A]
+            ConfigA[AGENTS.md]
+            CodeA[Source Code A]
+            AgentA -->|Reads/Writes| ConfigA
+            AgentA -->|Refactors| CodeA
+        end
+
+        subgraph "Microservice B"
+            AgentB[Agent B]
+            ConfigB[AGENTS.md]
+            CodeB[Source Code B]
+            AgentB -->|Reads/Writes| ConfigB
+            AgentB -->|Refactors| CodeB
+        end
     end
 
-    subgraph "Comparison"
-        PG -->|Compares Metrics| Diff[Improvement Report]
-        Diff -->|Visualized for| User
-    end
+    %% Key Flow: PG talks to Grazer TWICE
+    PG -->|1. Request Old Metrics| Grazer
+    PG -->|2. Request New Metrics| Grazer
+    Grazer -->|Returns Cyclometrics & Mermaid| PG
 
-    Grazer -- Analyzes --> Repo
+    PG -->|3. Compare & Explain| Diff[Improvement Report]
+    
+    AgentOrch -->|Spawns| AgentA
+    AgentOrch -->|Spawns| AgentB
+
+    %% A2A Communication
+    AgentA <-->|A2A Protocol / Req Docs| AgentB
+    
+    %% Use MCP
+    AgentA -.->|Uses Tools| MCP
+    AgentB -.->|Uses Tools| MCP

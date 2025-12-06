@@ -1,30 +1,50 @@
 sequenceDiagram
     actor User
     participant PG as Prompt Gen (V2V)
-    participant Grazer
-    participant Agent as AI Coder
-    participant Repo as Source Code
+    participant Grazer as Grazer Service
+    participant GrazerMCP as Grazer MCP
+    participant AgentOrch as Agent Orchestrator
+    
+    box "Microservice A" #eef
+        participant AgentA as Agent A
+        participant ConfigA as AGENTS.md (A)
+    end
+    
+    box "Microservice B" #fee
+        participant AgentB as Agent B
+        participant ConfigB as AGENTS.md (B)
+    end
+
+    note over Grazer, GrazerMCP: Grazer exposes tools via MCP
 
     User->>PG: Select Repo
     
-    note right of PG: 1. Pre-Refactor Analysis
-    PG->>Grazer: Request Metrics (Old Repo)
-    Grazer->>Repo: Analyze Files & Complexity
-    Grazer-->>PG: Metrics, Explanations, Mermaid
-    PG->>User: Show Visualization (Red Nodes)
+    rect rgb(240, 248, 255)
+        note right of PG: 1. Pre-Refactor Analysis
+        PG->>Grazer: Request Metrics (Old Repo)
+        Grazer-->>PG: Metrics, Explanations, Mermaid
+    end
 
-    PG->>PG: Plan Microservice Split
-    PG->>User: Present Plan
-    User->>PG: Approve Plan
+    PG->>AgentOrch: Execute Split Plan (Create Service A & B)
+    AgentOrch->>AgentA: Initialize Service A
+    AgentA->>ConfigA: Create AGENTS.md (Define Scope)
+    AgentOrch->>AgentB: Initialize Service B
+    AgentB->>ConfigB: Create AGENTS.md (Define Scope)
 
-    note right of PG: 2. Execution
-    PG->>Agent: Execute Split Plan
-    Agent->>Repo: Create Microservices / Refactor
+    rect rgb(255, 250, 240)
+        note right of PG: 2. A2A Communication
+        AgentA->>GrazerMCP: Check Complexity (Self)
+        AgentA->>AgentB: Request Change (via Protocol)
+        AgentB->>ConfigB: Verify Permissions
+        AgentB-->>AgentA: Ack / Reject
+    end
 
-    note right of PG: 3. Post-Refactor Verification
-    PG->>Grazer: Request Metrics (New Microservices)
-    Grazer->>Repo: Analyze New Structure
-    Grazer-->>PG: New Metrics
-    PG->>PG: Compare Old vs New
-    PG->>PG: Generate Improvement Explanation
-    PG->>User: Show Comparison & Success
+    rect rgb(240, 255, 240)
+        note right of PG: 3. Post-Refactor Verification
+        PG->>Grazer: Request Metrics (Service A)
+        PG->>Grazer: Request Metrics (Service B)
+        Grazer-->>PG: New Metrics
+        PG->>PG: Compare & Explain Improvement
+    end
+    
+    PG->>User: Show Success
