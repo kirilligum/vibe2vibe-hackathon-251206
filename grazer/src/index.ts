@@ -160,7 +160,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         tools: [
             {
                 name: "calculate_metrics",
-                description: "Calculate holistic code quality metrics (Complexity, Cognitive, Halstead, MI, SLOC) for files or directories.",
+                description: `Calculate holistic code quality metrics for files or directories. 
+Returns a detailed JSON object containing:
+- cyclomaticComplexity: Measures the number of linearly independent paths through the code. Higher values indicate harder-to-test code (lower is better).
+- cognitiveComplexity: Estimates how difficult the code is for a human to understand, heavily penalizing nesting and structural breaks. Ideally < 15 per file (lower is better).
+- maintainabilityIndex: A composite score (0-100) combining complexity, volume, and size. Values > 85 are considered good; < 65 indicates hard-to-maintain code (higher is better).
+- halstead: Quantitative measures of code complexity based on operators and operands. 'Volume' measures information content; 'Effort' estimates mental cost to create.
+- loc/sloc: Raw 'Lines of Code' vs 'Source Lines of Code' (excluding comments/blanks). SLOC is a better proxy for program size.
+- commentDensity: The percentage of lines that are comments. Useful for assessing documentation coverage (higher is generally better).
+- fanOut: Counts the number of external modules imported. High fan-out implies high coupling and lower cohesion (lower is better).`,
                 inputSchema: {
                     type: "object",
                     properties: {
