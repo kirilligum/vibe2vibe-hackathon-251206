@@ -6,10 +6,13 @@
     "main": "build/index.js",
     "scripts": {
         "build": "tsc",
+        "start:api": "node build/api.js",
         "start": "node build/index.js"
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^0.6.0",
+        "@types/express": "^5.0.6",
+        "express": "^5.2.1",
         "typescript": "^5.9.3",
         "zod": "^3.22.4"
     },

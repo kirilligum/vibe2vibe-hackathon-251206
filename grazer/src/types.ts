@@ -17,6 +17,7 @@ export interface CodeMetrics {
     // Size & Readability
     loc: number; // Raw lines
     sloc: number; // Source lines (no empty/comments)
+    characterCount: number; // Total characters
     commentLines: number;
     commentDensity: number; // commentLines / loc
     // Architecture

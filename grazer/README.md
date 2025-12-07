@@ -2,7 +2,7 @@
 
 **A high-performance Model Context Protocol (MCP) server for instant, holistic code quality analysis.**
 
-## The MCP for code complexity analysis
+## Elevator Pitch
 Stop guessing about code quality. This MCP server acts as an intelligent sidecar for your LLM agents (like Claude), instantly calculating sophisticated metrics like Cognitive Complexity, Cyclomatic Complexity, Halstead measures, and Maintainability Indices for any file or directory. It empowers AI to "see" the structure and cost of code, not just the text.
 
 ## Motivation & Description
@@ -78,6 +78,7 @@ graph TD
 - **Code Size**:
   - **loc**: Raw Lines of Code.
   - **sloc**: Source Lines of Code (excluding blanks and comments). A more accurate measure of "real" code size. *Lower is usually better.*
+  - **characterCount**: Total number of characters in the file/directory.
   - **commentDensity**: The ratio of comment lines to total lines. Helps assess if the code is sufficiently documented. *Higher is generally better* (up to a reasonable point).
 - **Fan-Out**: The number of unique modules imported by this file. High fan-out indicates high coupling, making the module harder to test and reuse in isolation.
   - *Lower is better* (indicates looser coupling).
@@ -104,6 +105,25 @@ To add this server to Claude Code, run:
 claude mcp add mcp-file-metrics -- node /path/to/project/build/index.js
 ```
 *(Replace `/path/to/project` with the absolute path to this directory)*
+
+### REST API Usage
+
+You can also run the server as a standalone REST API.
+
+1. **Start the server**:
+   ```bash
+   npm run start:api
+   ```
+   The server listens on port 3000.
+
+2. **Make a Request** (using `curl`):
+   ```bash
+   curl -X POST http://localhost:3000/metrics \
+     -H "Content-Type: application/json" \
+     -d '{"path": "/absolute/path/to/your/file.ts"}'
+   ```
+
+3. **Response**: Returns the same JSON structure as the MCP tool.
 
 ### Programmatic Usage
 
