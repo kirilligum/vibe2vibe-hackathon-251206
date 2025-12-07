@@ -1,0 +1,22 @@
+description = "Generate standards-aligned plan using grazer metrics for banana-context"
+
+prompt = """
+Task: Generate the plan per the template, using live metrics from grazer.
+
+Grazer metrics for ./banana-context/src (JSON injected below):
+```json
+!{cd grazer && ./bin/grazer-metrics ../banana-context/src/}
+```
+
+Use the template below and fill it completely. Include the metrics in Section 0 (Grazer Metrics Snapshot) and cite hotspots in PRD/SRS/phases.
+
+Template:
+@{.gemini/commands/v2vplan-template.md}
+
+When producing the plan:
+- Obey the Output Policy wrapper exactly (=== document: plans/<descriptive-name>.md === ...).
+- Create a descriptive file name (e.g., banana-context-grazer-plan.md).
+- Keep content concise but standards-aligned, with all required sections and PXX markers.
+
+After the plan, give a brief summary + recommendation.
+"""
