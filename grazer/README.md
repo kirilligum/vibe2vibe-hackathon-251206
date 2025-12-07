@@ -1,6 +1,68 @@
 # MCP File Metrics Server
 
-A Model Context Protocol (MCP) server that provides tools to calculate **Cyclomatic Complexity** and **Character Count** for files and directories.
+**A high-performance Model Context Protocol (MCP) server for instant, holistic code quality analysis.**
+
+## The MCP for code complexity analysis
+Stop guessing about code quality. This MCP server acts as an intelligent sidecar for your LLM agents (like Claude), instantly calculating sophisticated metrics like Cognitive Complexity, Cyclomatic Complexity, Halstead measures, and Maintainability Indices for any file or directory. It empowers AI to "see" the structure and cost of code, not just the text.
+
+## Motivation & Description
+As AI coding assistants become more capable, they need quantitative data to make better decisions. A long file isn't necessarily complex, and a short file isn't necessarily simple. 
+This project serves as a bridge between raw source code and actionable quality insights. By providing deterministic, AST-based metrics via a standardized protocol (MCP), it enables tooling to:
+- Automatically flag potential refactoring candidates.
+- Assess the readability cost of proposed changes.
+- Visualize architectural coupling (Fan-Out).
+
+It is built to be **fast** (parallelized execution), **stateless**, and **easy to deploy** as a local stdio process.
+
+## System Architecture
+
+The server follows a modular, parallelized pipeline architecture.
+
+```mermaid
+graph TD
+    Client[MCP Client (Claude/IDE)] -->|CallTool: calculate_metrics| Server[MCP Server]
+    Server -->|Parse Request| Orchestrator[Analysis Orchestrator]
+    
+    Orchestrator -->|Spawn| TextAnalyzer[Text Analyzer]
+    Orchestrator -->|Spawn| ASTAnalyzer[AST Analyzer]
+    
+    subgraph Parallel Execution
+        TextAnalyzer -->|Regex/Scan| TextMetrics[SLOC/Comments]
+        ASTAnalyzer -->|ts.createSourceFile| AST[TypeScript AST]
+        AST -->|Visitor| Cyclomatic[Cyclomatic Complexity]
+        AST -->|Visitor| Cognitive[Cognitive Complexity]
+        AST -->|Visitor| Halstead[Halstead Logic]
+        AST -->|Visitor| FanOut[Fan-Out]
+    end
+    
+    TextMetrics --> Aggregator
+    Cyclomatic --> Aggregator
+    Cognitive --> Aggregator
+    Halstead --> Aggregator
+    FanOut --> Aggregator
+    
+    Aggregator -->|Synthesize| MI[Maintainability Index]
+    Aggregator -->|Return| Response[JSON Result]
+    Response -->|JSON-RPC| Client
+```
+
+## Tech Stack
+- **Language**: TypeScript
+- **Runtime**: Node.js
+- **Protocol**: Model Context Protocol (MCP) SDK
+- **Core Library**: `typescript` (Compiler API) for robust AST parsing.
+- **Validation**: `zod` for runtime schema validation.
+
+## User Flow
+
+1. **Discovery**: The user (or agent) executes `tools/list` and sees `calculate_metrics`.
+2. **Action**: The agent calls `calculate_metrics` with a file path (e.g., `/src/utils.ts`).
+3. **Processing**: 
+    - The server reads the file.
+    - It spins up parallel analyzers for text and AST.
+    - It computes base metrics and derived scores (like MI).
+4. **Insight**: The server returns a JSON object with all metrics.
+5. **Decision**: The agent uses this data to decide if the file needs refactoring or uses high complexity to explain the code more carefully.
 
 ## Features
 
@@ -80,7 +142,7 @@ The tool returns a JSON object embedded in the content. Here is what a typical r
 }
 ```
 
-### Verification
+## Verification
 
 A verification script is included to test the server functionality programmatically. It uses the official MCP SDK Client to connect to the server and validate the output.
 
