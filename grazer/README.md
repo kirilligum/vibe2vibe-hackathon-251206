@@ -20,7 +20,7 @@ The server follows a modular, parallelized pipeline architecture.
 
 ```mermaid
 graph TD
-    Client[MCP Client (Claude/IDE)] -->|CallTool: calculate_metrics| Server[MCP Server]
+    Client["MCP Client (Claude/IDE)"] -->|CallTool: calculate_metrics| Server[MCP Server]
     Server -->|Parse Request| Orchestrator[Analysis Orchestrator]
     
     Orchestrator -->|Spawn| TextAnalyzer[Text Analyzer]
@@ -176,7 +176,7 @@ This script will:
 1. Start the server (from `build/index.js`).
 2. Connect to it via stdio.
 3. Call the `calculate_metrics` tool on the `test_data` directory.
-4. assert that the returned complexity and character counts match expected values.
+4. Assert that the returned complexity and character counts match expected values.
 5. Exit with 0 on success, or 1 on failure.
 
 Logs of individual file complexity will be printed to stderr during the process.
